@@ -2,13 +2,17 @@
 import re
 import time
 import os
+from pathlib import Path
 from datetime import datetime
 from dotenv import load_dotenv
 import streamlit as st
 from groq import Groq
 
 # Load environment variables from .env file
-load_dotenv()
+# Get the directory where this script is located
+script_dir = Path(__file__).parent
+env_path = script_dir / '.env'
+load_dotenv(dotenv_path=env_path)
 
 # ------------------------------
 # App config
@@ -24,19 +28,37 @@ st.set_page_config(
 # ------------------------------
 # Try to get API key from Streamlit secrets first, then fall back to .env
 API_KEY = None
+
+# Method 1: Try Streamlit secrets
 try:
     API_KEY = st.secrets["Groq_API_KEY"]
 except Exception:
     pass
 
+# Method 2: Try environment variable
 if not API_KEY:
     API_KEY = os.getenv("Groq_API_KEY")
+
+# Method 3: Try reading .env file directly
+if not API_KEY:
+    try:
+        env_file = script_dir / '.env'
+        if env_file.exists():
+            with open(env_file, 'r') as f:
+                for line in f:
+                    if line.startswith('Groq_API_KEY='):
+                        API_KEY = line.split('=', 1)[1].strip()
+                        break
+    except Exception as e:
+        pass
 
 if not API_KEY:
     st.error("⚠️ Groq_API_KEY not found. Please add it to .streamlit/secrets.toml or .env file.")
     st.write("**Debug info:**")
     st.write(f"- Environment variable 'Groq_API_KEY': {os.getenv('Groq_API_KEY')}")
     st.write(f"- Secrets available: {list(st.secrets.keys()) if hasattr(st, 'secrets') else 'No secrets'}")
+    st.write(f"- Script directory: {script_dir}")
+    st.write(f"- .env file exists: {(script_dir / '.env').exists()}")
     st.stop()
 
 # Initialize Groq client
