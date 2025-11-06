@@ -23,13 +23,20 @@ st.set_page_config(
 # Backend: Configure Groq API
 # ------------------------------
 # Try to get API key from Streamlit secrets first, then fall back to .env
+API_KEY = None
 try:
     API_KEY = st.secrets["Groq_API_KEY"]
-except (KeyError, FileNotFoundError):
+except Exception:
+    pass
+
+if not API_KEY:
     API_KEY = os.getenv("Groq_API_KEY")
 
 if not API_KEY:
     st.error("⚠️ Groq_API_KEY not found. Please add it to .streamlit/secrets.toml or .env file.")
+    st.write("**Debug info:**")
+    st.write(f"- Environment variable 'Groq_API_KEY': {os.getenv('Groq_API_KEY')}")
+    st.write(f"- Secrets available: {list(st.secrets.keys()) if hasattr(st, 'secrets') else 'No secrets'}")
     st.stop()
 
 # Initialize Groq client
